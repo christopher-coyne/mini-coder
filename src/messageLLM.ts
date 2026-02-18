@@ -11,6 +11,7 @@ const messages: Anthropic.MessageParam[] = [];
 
 const SYSTEM_PROMPT = `Be helpful and concise in your answers. You have access to tools for reading and writing files. Use them when the user asks you to work with files.`;
 
+
 export async function chat(userMessage: string): Promise<void> {
   messages.push({ role: "user", content: userMessage });
 
@@ -39,8 +40,6 @@ export async function chat(userMessage: string): Promise<void> {
     const toolUseBlocks = response.content.filter(
       (block) => block.type === "tool_use"
     );
-
-    console.log('tool use blocks ', toolUseBlocks)
 
     const toolResults = toolUseBlocks.map(
       (toolUse) => ({
@@ -76,5 +75,5 @@ export async function chat(userMessage: string): Promise<void> {
     messages.push({ role: "assistant", content: response.content });
   }
 
-  console.log('FINISHED TOOL CALLS'); // newline after streamed output
+  console.log(); // newline after output
 }
