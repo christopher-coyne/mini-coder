@@ -1,7 +1,7 @@
 import "dotenv/config";
 import * as readline from "readline/promises";
 import chalk from "chalk";
-import { chat } from "./messageLLM.js";
+import { chat, compact } from "./messageLLM.js";
 
 async function main(): Promise<void> {
   const rl = readline.createInterface({
@@ -28,6 +28,20 @@ async function main(): Promise<void> {
     const input = await rl.question("> ");
     const trimmed = input.trim();
     if (!trimmed) continue;
+
+    // Handle slash commands
+    if (trimmed.startsWith("/")) {
+      const command = trimmed.slice(1).split(/\s+/)[0];
+      switch (command) {
+        case "compact":
+          await compact();
+          break;
+        default:
+          console.log(chalk.red(`Unknown command: /${command}`));
+      }
+      console.log();
+      continue;
+    }
 
     try {
       console.log();

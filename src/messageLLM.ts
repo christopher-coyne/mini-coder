@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import ora from "ora";
 import { tools } from "./tools.js";
 import { processToolCall } from "./processToolCall.js";
+import { compactMessages } from "./compactMessages.js";
 
 const client = new Anthropic();
 
@@ -11,6 +12,15 @@ const messages: Anthropic.MessageParam[] = [];
 
 const SYSTEM_PROMPT = `Be helpful and concise in your answers. You have access to tools for reading and writing files. Use them when the user asks you to work with files.`;
 
+// token limit of 100k before autocompacting
+const TOKEN_LIMIT = 100000;
+
+let lastTokenCount = 0;
+
+function logTokenUsage(usage: Anthropic.Usage): void {
+  lastTokenCount = usage.input_tokens + usage.output_tokens;
+  console.log(chalk.dim(`\n[Total tokens: ${lastTokenCount}]`));
+}
 
 export async function chat(userMessage: string): Promise<void> {
   messages.push({ role: "user", content: userMessage });
@@ -33,6 +43,7 @@ export async function chat(userMessage: string): Promise<void> {
 
   let response = await stream.finalMessage();
   if (spinner.isSpinning) spinner.stop();
+  logTokenUsage(response.usage);
   messages.push({ role: "assistant", content: response.content });
 
   // Agentic loop: keep going while the model wants to use tools
@@ -72,8 +83,29 @@ export async function chat(userMessage: string): Promise<void> {
 
     response = await followUp.finalMessage();
     if (spinner.isSpinning) spinner.stop();
+    logTokenUsage(response.usage);
     messages.push({ role: "assistant", content: response.content });
   }
 
   console.log(); // newline after output
+
+  // Auto-compact when conversation gets too long
+  if (lastTokenCount > TOKEN_LIMIT) {
+    console.log('compacting ', lastTokenCount, TOKEN_LIMIT)
+    await compact();
+  }
+}
+
+export async function compact(): Promise<void> {
+  const spinner = ora("Compacting...").start();
+  await compactMessages(messages);
+  spinner.stop();
+
+  const { input_tokens } = await client.messages.countTokens({
+    model: "claude-sonnet-4-5-20250929",
+    system: SYSTEM_PROMPT,
+    messages,
+    tools,
+  });
+  console.log(chalk.dim(`[Conversation compacted — ${input_tokens} tokens]`));
 }
