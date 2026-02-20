@@ -2,6 +2,7 @@ import "dotenv/config";
 import * as readline from "readline/promises";
 import chalk from "chalk";
 import { chat, compact } from "./messageLLM.js";
+import { loadSkills } from "./skills.js";
 
 async function main(): Promise<void> {
   const rl = readline.createInterface({
@@ -35,12 +36,26 @@ async function main(): Promise<void> {
       switch (command) {
         case "compact":
           await compact();
-          break;
-        default:
+          console.log();
+          continue;
+        default: {
+          // Check if it matches a skill name
+          const skills = loadSkills();
+          const skill = skills.find((s) => s.name === command);
+          if (skill) {
+            const rest = trimmed.slice(1 + command.length).trim();
+            const prompt = rest
+              ? `Use the ${skill.name} skill. ${rest}`
+              : `Use the ${skill.name} skill to help me.`;
+            await chat(prompt);
+            console.log();
+            continue;
+          }
           console.log(chalk.red(`Unknown command: /${command}`));
+          console.log();
+          continue;
+        }
       }
-      console.log();
-      continue;
     }
 
     try {

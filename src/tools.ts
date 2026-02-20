@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { loadSkills } from "./skills.js";
 
-export const tools: Anthropic.Tool[] = [
+const baseTools: Anthropic.Tool[] = [
   {
     name: "read_file",
     description:
@@ -116,7 +117,7 @@ export const tools: Anthropic.Tool[] = [
       required: [],
     },
   },
-{
+  {
     name: "bash",
     description:
       "Run a shell command and return its output. Use this for running tests, installing packages, git operations, starting servers, or any other terminal command. Commands time out after 30 seconds.",
@@ -132,3 +133,31 @@ export const tools: Anthropic.Tool[] = [
     },
   },
 ];
+
+function buildTools(): Anthropic.Tool[] {
+  const skills = loadSkills();
+  if (skills.length === 0) return baseTools;
+
+  const skillList = skills
+    .map((s) => `- ${s.name}: ${s.description}`)
+    .join("\n");
+
+  const useSkillTool: Anthropic.Tool = {
+    name: "use_skill",
+    description: `Invoke a skill to get specialized instructions for a task. Available skills:\n\n${skillList}\n\nCall this tool with the skill name to receive its instructions, then follow them.`,
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        skill_name: {
+          type: "string",
+          description: "The name of the skill to invoke",
+        },
+      },
+      required: ["skill_name"],
+    },
+  };
+
+  return [...baseTools, useSkillTool];
+}
+
+export const tools: Anthropic.Tool[] = buildTools();

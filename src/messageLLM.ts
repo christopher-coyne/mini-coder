@@ -1,6 +1,8 @@
 import chalk from "chalk";
 import Anthropic from "@anthropic-ai/sdk";
 import ora from "ora";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { tools } from "./tools.js";
 import { processToolCall } from "./processToolCall.js";
 import { compactMessages } from "./compactMessages.js";
@@ -10,7 +12,17 @@ const client = new Anthropic();
 // Conversation history
 const messages: Anthropic.MessageParam[] = [];
 
-const SYSTEM_PROMPT = `Be helpful and concise in your answers. You have access to tools for reading and writing files. Use them when the user asks you to work with files.`;
+const BASE_SYSTEM_PROMPT = `Be helpful and concise in your answers. You have access to tools for reading and writing files. Use them when the user asks you to work with files.`;
+
+function getSystemPrompt(): string {
+  const coderMdPath = join(process.cwd(), ".coder", "CODER.md");
+  try {
+    const coderMd = readFileSync(coderMdPath, "utf-8");
+    return `${BASE_SYSTEM_PROMPT}\n\n# Project Instructions (from CODER.md)\n\n${coderMd}`;
+  } catch {
+    return BASE_SYSTEM_PROMPT;
+  }
+}
 
 // token limit of 100k before autocompacting
 const TOKEN_LIMIT = 100000;
@@ -31,7 +43,7 @@ export async function chat(userMessage: string): Promise<void> {
   const stream = client.messages.stream({
     model: "claude-sonnet-4-5-20250929",
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
+    system: getSystemPrompt(),
     messages,
     tools,
   });
@@ -71,7 +83,7 @@ export async function chat(userMessage: string): Promise<void> {
     const followUp = client.messages.stream({
       model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: getSystemPrompt(),
       messages,
       tools,
     });
@@ -103,7 +115,7 @@ export async function compact(): Promise<void> {
 
   const { input_tokens } = await client.messages.countTokens({
     model: "claude-sonnet-4-5-20250929",
-    system: SYSTEM_PROMPT,
+    system: getSystemPrompt(),
     messages,
     tools,
   });

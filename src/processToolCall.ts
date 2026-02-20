@@ -5,6 +5,8 @@ import { globTool } from "./tools/search/globTool.js";
 import { grepTool } from "./tools/search/grepTool.js";
 import { lsTool } from "./tools/search/lsTool.js";
 import { bashTool } from "./tools/execution/bash.js";
+import chalk from "chalk";
+import { loadSkills } from "./skills.js";
 
 export function processToolCall(
   toolName: string,
@@ -25,6 +27,14 @@ export function processToolCall(
       return lsTool(toolInput);
 case "bash":
       return bashTool(toolInput);
+    case "use_skill": {
+      const skills = loadSkills();
+      const skill = skills.find((s) => s.name === toolInput.skill_name);
+      console.log('tool input ', toolInput)
+      if (!skill) return `Unknown skill: ${toolInput.skill_name}`;
+      console.log(chalk.hex('#FF69B4')(`[Skill invoked: ${skill.name}]`));
+      return skill.content;
+    }
     default:
       return `Unknown tool: ${toolName}`;
   }
