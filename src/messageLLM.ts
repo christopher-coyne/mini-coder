@@ -37,7 +37,7 @@ function logTokenUsage(usage: Anthropic.Usage): void {
 export async function chat(userMessage: string): Promise<void> {
   messages.push({ role: "user", content: userMessage });
 
-  let spinner = ora("Thinking...").start();
+  let spinner = ora({ text: "Thinking...", spinner: "dots" }).start();
 
   // Stream the initial response
   const stream = client.messages.stream({
@@ -64,6 +64,7 @@ export async function chat(userMessage: string): Promise<void> {
       (block) => block.type === "tool_use"
     );
 
+    spinner = ora({ text: "Executing tools...", spinner: "dots" }).start();
     const toolResults = await Promise.all(
       toolUseBlocks.map(async (toolUse) => ({
         type: "tool_result" as const,
@@ -74,10 +75,11 @@ export async function chat(userMessage: string): Promise<void> {
         ),
       }))
     );
+    spinner.stop();
 
     messages.push({ role: "user", content: toolResults });
 
-    spinner = ora("Thinking...").start();
+    spinner = ora({ text: "Thinking...", spinner: "dots" }).start();
 
     // Stream the follow-up response
     const followUp = client.messages.stream({
@@ -109,7 +111,7 @@ export async function chat(userMessage: string): Promise<void> {
 }
 
 export async function compact(): Promise<void> {
-  const spinner = ora("Compacting...").start();
+  const spinner = ora({ text: "Compacting...", spinner: "dots" }).start();
   await compactMessages(messages);
   spinner.stop();
 

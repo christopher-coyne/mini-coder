@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import chalk from "chalk";
+import ora from "ora";
 import { exploreTools } from "./tools.js";
 import { processToolCall } from "./processToolCall.js";
 import { setLogPrefix } from "./logger.js";
@@ -14,6 +15,7 @@ const MAX_TURNS = 15;
 export async function runSubagent(prompt: string): Promise<string> {
   console.log(chalk.cyan("\n[Explore agent started]"));
 
+  let spinner = ora({ text: "Exploring codebase...", spinner: "dots" }).start();
   setLogPrefix("SUBAGENT");
   try {
     const messages: Anthropic.MessageParam[] = [
@@ -33,6 +35,8 @@ export async function runSubagent(prompt: string): Promise<string> {
     let turns = 0;
     while (response.stop_reason === "tool_use" && turns < MAX_TURNS) {
       turns++;
+      spinner.text = `Exploring codebase (turn ${turns}/${MAX_TURNS})...`;
+      
       const toolUseBlocks = response.content.filter(
         (block) => block.type === "tool_use"
       );
@@ -67,10 +71,12 @@ export async function runSubagent(prompt: string): Promise<string> {
     );
     const result = textBlocks.map((b) => b.text).join("\n");
 
+    if (spinner.isSpinning) spinner.stop();
     console.log(chalk.cyan("[Explore agent finished]"));
 
     return result;
   } catch (err) {
+    if (spinner.isSpinning) spinner.stop();
     const message = err instanceof Error ? err.message : String(err);
     console.log(chalk.red(`[Explore agent error: ${message}]`));
     return `Explore agent failed: ${message}`;
