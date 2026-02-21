@@ -64,15 +64,15 @@ export async function chat(userMessage: string): Promise<void> {
       (block) => block.type === "tool_use"
     );
 
-    const toolResults = toolUseBlocks.map(
-      (toolUse) => ({
+    const toolResults = await Promise.all(
+      toolUseBlocks.map(async (toolUse) => ({
         type: "tool_result" as const,
         tool_use_id: toolUse.id,
-        content: processToolCall(
+        content: await processToolCall(
           toolUse.name,
           toolUse.input as Record<string, string>
         ),
-      })
+      }))
     );
 
     messages.push({ role: "user", content: toolResults });

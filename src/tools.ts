@@ -132,7 +132,26 @@ const baseTools: Anthropic.Tool[] = [
       required: ["command"],
     },
   },
+  {
+    name: "task",
+    description:
+      "Spawn an explore subagent to search and read files. Use this for researching the codebase, finding files, understanding code structure, or answering questions that require reading multiple files. The subagent has read-only access (read_file, glob, grep, ls) and returns its findings as text.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        prompt: {
+          type: "string",
+          description: "The task or question for the explore agent to investigate",
+        },
+      },
+      required: ["prompt"],
+    },
+  },
 ];
+
+export const exploreTools: Anthropic.Tool[] = baseTools.filter((t) =>
+  ["read_file", "glob", "grep", "ls"].includes(t.name)
+);
 
 function buildTools(): Anthropic.Tool[] {
   const skills = loadSkills();

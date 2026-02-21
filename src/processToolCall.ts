@@ -7,11 +7,12 @@ import { lsTool } from "./tools/search/lsTool.js";
 import { bashTool } from "./tools/execution/bash.js";
 import chalk from "chalk";
 import { loadSkills } from "./skills.js";
+import { runSubagent } from "./subagent.js";
 
-export function processToolCall(
+export async function processToolCall(
   toolName: string,
   toolInput: Record<string, string>
-): string {
+): Promise<string> {
   switch (toolName) {
     case "read_file":
       return readFile(toolInput);
@@ -25,8 +26,10 @@ export function processToolCall(
       return grepTool(toolInput);
     case "ls":
       return lsTool(toolInput);
-case "bash":
+    case "bash":
       return bashTool(toolInput);
+    case "task":
+      return runSubagent(toolInput.prompt);
     case "use_skill": {
       const skills = loadSkills();
       const skill = skills.find((s) => s.name === toolInput.skill_name);
